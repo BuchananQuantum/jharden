@@ -30,13 +30,13 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
 
         [home.home_button.double_click() for home in [self.home_1, self.home_2]]
 
-        self.device_2.just_fyi('Device2 creates group chat with Device1')
+        self.device_2.just_fyi('Device2 creates Group chat 1 with Device1')
         self.home_2.create_group_chat([self.username_1], group_chat_name=self.group_chat_name_1)
         self.home_2.home_button.double_click()
         self.home_1.home_button.double_click()
 
         self.device_1.just_fyi('Device1 rejects both chats and verifies they disappeared and not in Chats too')
-        self.home_1.notifications_button.click()
+        self.home_1.notifications_unread_badge.wait_and_click(20)
         self.home_1.notifications_select_button.click()
         self.home_1.element_by_text_part(self.username_2[:10]).click()
         self.home_1.element_by_text_part(self.group_chat_name_1).click()
@@ -52,7 +52,7 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
             self.errors.append("Group chat is added on home after rejection")
 
         self.home_1.just_fyi("Verify there are still no chats after relogin")
-        self.home_1.relogin()
+        self.home_1.reopen_app()
         if self.home_1.element_by_text_part(self.username_2[:20]).is_element_displayed(2):
             self.errors.append("1-1 chat appears on Chats view after relogin")
         if self.home_1.element_by_text_part(self.group_chat_name_1).is_element_displayed(2):
@@ -69,7 +69,7 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
     def test_activity_center_accept_chats(self):
         [home.home_button.double_click() for home in [self.home_1, self.home_2]]
 
-        self.device_2.just_fyi('Device2 creates 1-1 and Group chat again')
+        self.device_2.just_fyi('Device2 sends a message in 1-1 and creates Group chat 2')
         self.home_2.get_chat_from_home_view(self.username_1).click()
         self.device_2_one_to_one_chat.send_message(self.message_from_sender)
         self.device_2_one_to_one_chat.home_button.double_click()
@@ -77,7 +77,7 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
 
         self.device_1.just_fyi('Device1 accepts both chats (via Select All button) and verifies they disappeared '
                                'from activity center view but present on Chats view')
-        self.home_1.notifications_button.click()
+        self.home_1.notifications_unread_badge.wait_and_click(20)
         self.home_1.notifications_select_button.click()
 
         self.home_1.notifications_select_all.click()
@@ -98,24 +98,26 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
     def test_activity_center_notifications_on_mentions_in_groups_and_empty_state(self):
         [home.home_button.double_click() for home in [self.home_1, self.home_2]]
 
-        self.home_1.just_fyi("Joining Group chat, receiving community link in there")
-        device_1_one_to_one_chat = self.home_1.add_contact(self.public_key_user_2)
-        device_1_one_to_one_chat.home_button.double_click()
+        self.device_2.just_fyi('Device2 creates Group chat 3')
+        self.home_2.create_group_chat([self.username_1], group_chat_name=self.group_chat_name_3)
+        self.home_2.home_button.double_click()
 
-        pub_1 = self.home_1.create_group_chat(user_names_to_add=[self.username_2], group_chat_name=self.group_chat_name_3)
-        pub_2 = self.home_2.get_chat(self.group_chat_name_3).click()
+        self.home_1.just_fyi("Device1 joins Group chat 3")
+        group_chat_1 = self.home_1.get_chat(self.group_chat_name_3).click()
+        group_chat_1.join_chat_button.click()
+        group_chat_1.home_button.double_click()
 
-        pub_1.get_back_to_home_view()
-
-        self.home_2.get_chat_from_home_view(self.group_chat_name_3).click()
-        pub_2.select_mention_from_suggestion_list(self.username_1, self.username_1[:2])
-        pub_2.send_as_keyevent("group")
+        self.home_2.just_fyi("Device2 mentions Device1 in Group chat 3")
+        chat_2 = self.home_2.get_chat_from_home_view(self.group_chat_name_3).click()
+        chat_2.select_mention_from_suggestion_list(self.username_1, self.username_1[:2])
+        chat_2.send_as_keyevent("group")
         group_chat_message = self.username_1 + " group"
-        pub_2.send_message_button.click()
+        chat_2.send_message_button.click()
 
+        self.home_1.just_fyi("Device1 checks unread indicator on Activity center bell")
         if not self.home_1.notifications_unread_badge.is_element_displayed():
             self.errors.append("Unread badge is NOT shown after receiving mentions from Group")
-        self.home_1.notifications_unread_badge.wait_and_click(30)
+        self.home_1.notifications_unread_badge.wait_and_click(20)
 
         self.home_1.just_fyi("Check that notification from group is presented in Activity Center")
         if self.home_1.get_chat_from_activity_center_view(self.username_2).chat_message_preview == group_chat_message:
@@ -134,16 +136,6 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
         self.home_1.notifications_button.click()
         if not self.home_1.element_by_translation_id('empty-activity-center').is_element_present():
             self.errors.append("It appears Activity Center still has some chats after user opened all of them")
-
-        self.device_1.just_fyi('Device1 removes Device2 from contacts (for the next test)')
-        self.home_1.home_button.double_click()
-        self.home_1.get_chat_from_home_view(self.username_2).click()
-        self.device_1_one_to_one_chat = self.home_1.get_chat_view()
-        self.device_1_one_to_one_chat.chat_options.click()
-        self.device_1_one_to_one_chat.view_profile_button.click()
-        self.device_1_one_to_one_chat.remove_from_contacts.click_until_absense_of_element(
-            self.device_1_one_to_one_chat.remove_from_contacts)
-        self.device_1_one_to_one_chat.close_button.click()
 
         self.device_1.just_fyi('Device1 removes 1-1 chat from home screen (for the next test)')
         self.home_1.home_button.double_click()
