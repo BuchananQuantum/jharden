@@ -79,7 +79,6 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
                                'from activity center view but present on Chats view')
         self.home_1.notifications_unread_badge.wait_and_click(20)
         self.home_1.notifications_select_button.click()
-
         self.home_1.notifications_select_all.click()
         self.home_1.notifications_accept_and_add_button.click()
         if self.home_1.element_by_text_part(self.username_2[:20]).is_element_displayed(2):
@@ -117,35 +116,34 @@ class TestActivityCenterMultipleDeviceMedium(MultipleSharedDeviceTestCase):
         self.home_1.just_fyi("Device1 checks unread indicator on Activity center bell")
         if not self.home_1.notifications_unread_badge.is_element_displayed():
             self.errors.append("Unread badge is NOT shown after receiving mentions from Group")
-        self.home_1.notifications_unread_badge.wait_and_click(20)
+        self.home_1.notifications_unread_badge.wait_and_click(30)
 
         self.home_1.just_fyi("Check that notification from group is presented in Activity Center")
-        if self.home_1.get_chat_from_activity_center_view(self.username_2).chat_message_preview == group_chat_message:
-            self.home_1.just_fyi("Open group chat where user mentioned and return to Activity Center")
-            self.home_1.get_chat_from_activity_center_view(self.username_2).click()
-            self.home_1.home_button.double_click()
-            self.home_1.notifications_button.click()
-        else:
+        if not self.home_1.get_chat_from_activity_center_view(self.username_2).chat_message_preview == group_chat_message:
             self.errors.append("No mention in Activity Center for Group Chat")
 
-        self.home_1.just_fyi("Check there are no unread messages counters on chats after message read")
-        if self.home_1.get_chat_from_home_view(self.group_chat_name_3).new_messages_counter.text == "1":
-            self.errors.append("Unread message indicator is kept after all messages read in chats")
+        self.home_1.just_fyi("Open group chat where user mentioned")
+        self.home_1.get_chat_from_activity_center_view(self.username_2).click()
+        self.home_1.home_button.double_click()
+
+        self.home_1.just_fyi("Check there are no unread messages counter on chats after message is read")
+        if (self.home_1.notifications_unread_badge.is_element_present() or
+                self.home_1.get_chat_from_home_view(self.group_chat_name_3).new_messages_counter.text == "1"):
+            self.errors.append("Unread message indicator is kept after message is read in chat")
 
         self.home_1.just_fyi("Check there is an empty view on Activity Center")
         self.home_1.notifications_button.click()
         if not self.home_1.element_by_translation_id('empty-activity-center').is_element_present():
-            self.errors.append("It appears Activity Center still has some chats after user opened all of them")
-
-        self.device_1.just_fyi('Device1 removes 1-1 chat from home screen (for the next test)')
-        self.home_1.home_button.double_click()
-        self.home_1.delete_chat_long_press(self.username_2)
+            self.errors.append("Activity Center still has some chats after user opened all of them")
 
         self.errors.verify_no_errors()
 
     @marks.testrail_id(702187)
     def test_activity_center_accept_chats_only_from_contacts(self):
         [home.home_button.double_click() for home in [self.home_1, self.home_2]]
+
+        if self.home_1.get_chat_from_home_view(self.username_2).is_element_displayed():
+            self.home_1.delete_chat_long_press(self.username_2)
 
         self.device_1.just_fyi('Device1 sets permissions to accept chat requests only from trusted contacts')
         profile_1 = self.home_1.profile_button.click()
